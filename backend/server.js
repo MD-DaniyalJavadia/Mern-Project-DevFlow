@@ -1,0 +1,24 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import {connectDB} from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
+import snippetRoutes from "./routes/snippetRoutes.js";
+import bugRoutes from "./routes/bugRoutes.js";
+import noteRoutes from "./routes/noteRoutes.js";
+import sessionRoutes from "./routes/sessionRoutes.js";
+import bookmarkRoutes from "./routes/bookmarkRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
+
+const app=express();
+app.use(cors({ origin:process.env.CLIENT_URL||"http://localhost:5173", credentials:true }));
+app.use(express.json({limit:"1mb"}));
+app.use(cookieParser());
+app.get("/api/health",(_,res)=>res.json({success:true,message:"DevFlow API is running",data:{}}));
+app.use("/api/auth",authRoutes); app.use("/api/tasks",taskRoutes); app.use("/api/snippets",snippetRoutes); app.use("/api/bugs",bugRoutes); app.use("/api/notes",noteRoutes); app.use("/api/sessions",sessionRoutes); app.use("/api/bookmarks",bookmarkRoutes); app.use("/api/analytics",analyticsRoutes);
+app.use((req,res)=>res.status(404).json({success:false,message:"Route not found"}));
+app.use((err,req,res,next)=>{console.error(err); if(err.name==="ValidationError") return res.status(400).json({success:false,message:Object.values(err.errors).map(x=>x.message).join(", ")}); if(err.code===11000)return res.status(409).json({success:false,message:"A unique value already exists"}); res.status(500).json({success:false,message:"Something went wrong"})});
+const port=Number(process.env.PORT)||5000;
+connectDB().then(()=>app.listen(port,()=>console.log(`DevFlow API listening on http://localhost:${port}`))).catch(err=>{console.error("Database connection failed:",err.message);process.exit(1)});
